@@ -2,6 +2,18 @@ package com.aicaller.app.navigation
 
 import android.content.Intent
 import android.net.Uri
+import android.Manifest
+import android.content.Intent as AndroidIntent
+import android.os.Build
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+import java.util.Locale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -284,8 +296,99 @@ private fun HistoryScreen() {
 
 @Composable
 private fun AssistantScreen(onDemoCall: () -> Unit) {
+    val context = LocalContext.current
+    var transcript by remember { mutableStateOf("Tap the microphone and speak a short phrase.") }
+    var voiceStatus by remember { mutableStateOf("On-device voice prototype · AI model not connected") }
+    var listening by remember { mutableStateOf(false) }
+    var ttsReady by remember { mutableStateOf(false) }
+    val speechRecognizer = remember(context) {
+        if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+    val textToSpeech = remember(context) {
+        TextToSpeech(context) { status ->
+            ttsReady = status == TextToSpeech.SUCCESS
+        }
+    }
+    DisposableEffect(speechRecognizer, textToSpeech) {
+        onDispose {
+            speechRecognizer?.destroy()
+            textToSpeech.stop()
+            textToSpeech.shutdown()
+        }
+    }
+    val startListening: () -> Unit = {
+        val recognizer = speechRecognizer
+        if (recognizer == null) {
+            voiceStatus = "Speech recognition is unavailable on this device."
+        } else {
+            val intent = AndroidIntent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to AI Caller")
+            }
+            recognizer.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: android.os.Bundle?) { voiceStatus = "Listening…"; listening = true }
+                override fun onBeginningOfSpeech() { voiceStatus = "Hearing you…" }
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() { listening = false; voiceStatus = "Processing speech…" }
+                override fun onError(error: Int) {
+                    listening = false
+                    voiceStatus = if (error == SpeechRecognizer.ERROR_NO_MATCH) "Didn't catch that. Try again." else "Speech recognition stopped. Tap to retry."
+                }
+                override fun onResults(results: android.os.Bundle?) {
+                    listening = false
+                    val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                    if (spoken.isBlank()) {
+                        voiceStatus = "No speech detected. Try again."
+                    } else {
+                        transcript = spoken
+                        voiceStatus = "Speech captured locally. No AI response was generated."
+                        if (ttsReady) textToSpeech.speak("I heard you say: $spoken", TextToSpeech.QUEUE_FLUSH, null, "aicaller-local-echo")
+                    }
+                }
+                override fun onPartialResults(partialResults: android.os.Bundle?) {}
+                override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+            })
+            recognizer.startListening(intent)
+        }
+    }
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startListening() else voiceStatus = "Microphone permission is needed for this prototype."
+    }
     LazyColumn(Modifier.fillMaxSize().background(Canvas), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { PageHeader("YOUR AI TEAM", "AI Agents", "Design your future calling assistant.") }
+        item { PageHeader("YOUR AI TEAM", "AI Agents", "Try the first on-device voice prototype.") }
+        item {
+            Surface(color = Color.White, shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Line)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BotOrb(64.dp, false)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Talk to your device", color = Navy, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text(voiceStatus, color = Muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    Text(transcript, color = Navy, style = MaterialTheme.typography.bodyLarge)
+                    Button(
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
+                            else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                        },
+                        enabled = !listening,
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Violet)
+                    ) {
+                        Icon(if (listening) Icons.Rounded.GraphicEq else Icons.Rounded.Mic, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (listening) "Listening…" else "Speak now")
+                    }
+                    Text("This uses Android speech recognition and text-to-speech. It is not connected to OpenAI and does not place phone calls.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
         item {
             Surface(color = Color.White, shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Line)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
