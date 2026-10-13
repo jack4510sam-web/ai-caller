@@ -1,5 +1,8 @@
 package com.aicaller.app.navigation
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -206,8 +209,44 @@ private fun UseCaseRow(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 @Composable
 private fun ContactsScreen(onDemoCall: () -> Unit) {
     val contacts = listOf("Aarav Sharma" to "AS", "Priya Mehta" to "PM", "Rahul Verma" to "RV", "Neha Kapoor" to "NK")
+    var dialNumber by remember { mutableStateOf("") }
+    val context = LocalContext.current
     LazyColumn(Modifier.fillMaxSize().background(Canvas), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { PageHeader("PEOPLE", "Your contacts", "Choose someone to prepare a demo call.") }
+        item {
+            Surface(color = Color.White, shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Line)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Dial a number", color = Navy, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Opens your phone app with the number filled in. You review it and place the call yourself.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = dialNumber,
+                        onValueChange = { dialNumber = it.filter { ch -> ch.isDigit() || ch == '+' || ch == ' ' || ch == '-' || ch == '(' || ch == ')' }.take(24) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("Phone number") },
+                        placeholder = { Text("+91 98765 43210") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                    )
+                    Button(
+                        onClick = {
+                            val number = dialNumber.trim()
+                            if (number.isNotBlank()) {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(number)}"))
+                                context.startActivity(intent)
+                            }
+                        },
+                        enabled = dialNumber.any { it.isDigit() },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Violet)
+                    ) {
+                        Icon(Icons.Rounded.Call, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Open phone dialer")
+                    }
+                }
+            }
+        }
         items(contacts.size) { index ->
             val contact = contacts[index]
             Surface(color = Color.White, shape = RoundedCornerShape(19.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Line)) {
