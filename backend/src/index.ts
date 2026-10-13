@@ -47,7 +47,7 @@ app.post("/v1/voice/session", tokenLimiter, async (req, res) => {
     audio: {
       output: { voice: "marin" },
       input: {
-        transcription: { model: "gpt-4o-mini-transcribe", language: "en" },
+        transcription: { model: "gpt-4o-mini-transcribe" },
         turn_detection: { type: "semantic_vad", create_response: true, interrupt_response: true }
       }
     },
