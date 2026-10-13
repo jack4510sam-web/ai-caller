@@ -231,7 +231,7 @@ private fun ContactsScreen(onDemoCall: () -> Unit) {
                         onClick = {
                             val number = dialNumber.trim()
                             if (number.isNotBlank()) {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(number)}"))
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))
                                 context.startActivity(intent)
                             }
                         },
