@@ -20,7 +20,7 @@
 - [x] Provider-neutral voice and telephony interfaces.
 - [ ] Android Realtime audio/WebRTC transport.
 - [ ] Runtime microphone permission and rationale.
-- [ ] Explicit user-confirmed outbound dialer flow.
+- [x] Explicit user-confirmed outbound dialer flow using Android ACTION_DIAL.
 - [ ] Validate call screening/default-dialer APIs and Play policy.
 - [ ] Test audio focus, Bluetooth, interruption, lifecycle, and supported devices.
 - [ ] Validate emergency and unsupported-call scenarios.
@@ -33,7 +33,7 @@
 - [ ] Retention, export, deletion, and security review.
 
 ## Release
-- [ ] Current CI green.
+- [ ] Current CI green (check latest run after each commit).
 - [ ] Physical-device QA.
 - [ ] Privacy/security review.
 - [ ] Signed release and store disclosures.
