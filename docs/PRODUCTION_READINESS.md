@@ -17,9 +17,11 @@
 - [ ] Add App Check, quotas, monitoring, and per-user rate controls.
 
 ## Android and telephony
+- [x] On-device speech recognition + text-to-speech echo prototype in AI Agents (not AI-powered).
 - [x] Provider-neutral voice and telephony interfaces.
 - [ ] Android Realtime audio/WebRTC transport.
-- [ ] Runtime microphone permission and rationale.
+- [x] Runtime microphone permission request for on-device voice prototype.
+- [ ] Add a dedicated permission rationale screen and test denial/permanent denial.
 - [x] Explicit user-confirmed outbound dialer flow using Android ACTION_DIAL.
 - [ ] Validate call screening/default-dialer APIs and Play policy.
 - [ ] Test audio focus, Bluetooth, interruption, lifecycle, and supported devices.
